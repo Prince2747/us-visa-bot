@@ -1,0 +1,4 @@
+# Sensitive files
+.env
+chat_ids.json
+node_modules/
