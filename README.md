@@ -1,4 +1,4 @@
-# 🇺🇸 US Visa Appointment Checker Bot
+# 🇺🇸 US Visa Appointment Checker Bot without paying the Appointment fee
 
 This Node.js script uses Puppeteer to log in to the US Visa scheduling website, check for the earliest available appointment, and send updates to users via Telegram.
 
