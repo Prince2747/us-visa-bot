@@ -1,0 +1,7 @@
+services:
+  - type: worker
+    name: visa-checker
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
