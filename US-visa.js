@@ -55,29 +55,32 @@ const sendTelegramMessage = async (message) => {
       const data = await res.json();
       if (!data.ok) throw new Error(data.description);
       console.log(`✅ Sent to ${chatId}`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
     } catch (err) {
       console.error(`❌ Failed for ${chatId}: ${err.message}`);
     }
   }
 };
 
-// ==== Visa Appointment Checker ====
 const checkAppointment = async () => {
   console.log('🔄 Checking for appointment...');
   let browser;
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+        '--no-zygote',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       ],
     });
-    const page = await browser.newPage();
 
+    const page = await browser.newPage();
     await page.goto(`https://ais.usvisa-info.com/en-${REGION}/niv/users/sign_in`, { waitUntil: 'networkidle2' });
 
     await page.waitForSelector('#user_email', { visible: true, timeout: 10000 });
