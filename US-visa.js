@@ -63,70 +63,66 @@ const sendTelegramMessage = async (message) => {
 };
 
 // ==== Visa Appointment Checker ====
-const checkAppointment = async (retries = 3, delay = 5000) => {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    console.log(`🔄 Attempt ${attempt} of ${retries}...`);
-    let browser;
-    try {
-      browser = await puppeteer.launch({
-  headless: true,
-  executablePath: '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome',
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  ],
-});
-      const page = await browser.newPage();
+const checkAppointment = async () => {
+  console.log('🔄 Checking for appointment...');
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      ],
+    });
+    const page = await browser.newPage();
 
-      await page.goto(`https://ais.usvisa-info.com/en-${REGION}/niv/users/sign_in`, { waitUntil: 'networkidle2' });
+    await page.goto(`https://ais.usvisa-info.com/en-${REGION}/niv/users/sign_in`, { waitUntil: 'networkidle2' });
 
-      await page.waitForSelector('#user_email', { visible: true, timeout: 10000 });
-      await page.type('#user_email', USERNAME);
-      await page.type('#user_password', PASSWORD);
-      await page.click('label[for="policy_confirmed"]');
-      await page.click('input[name="commit"]');
+    await page.waitForSelector('#user_email', { visible: true, timeout: 10000 });
+    await page.type('#user_email', USERNAME);
+    await page.type('#user_password', PASSWORD);
+    await page.click('label[for="policy_confirmed"]');
+    await page.click('input[name="commit"]');
 
-      await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-      const paymentUrl = `https://ais.usvisa-info.com/en-${REGION}/niv/schedule/${APPOINTMENT_ID}/payment`;
-      await page.goto(paymentUrl, { waitUntil: 'domcontentloaded' });
+    const paymentUrl = `https://ais.usvisa-info.com/en-${REGION}/niv/schedule/${APPOINTMENT_ID}/payment`;
+    await page.goto(paymentUrl, { waitUntil: 'domcontentloaded' });
 
-      await page.waitForSelector('h3.h4', { visible: true, timeout: 10000 });
+    await page.waitForSelector('h3.h4', { visible: true, timeout: 10000 });
 
-      const appointmentInfo = await page.evaluate(() => {
-        const heading = Array.from(document.querySelectorAll('h3.h4')).find(h => h.innerText.includes('First Available Appointments'));
-        if (!heading) return null;
+    const appointmentInfo = await page.evaluate(() => {
+      const heading = Array.from(document.querySelectorAll('h3.h4')).find(h => h.innerText.includes('First Available Appointments'));
+      if (!heading) return null;
 
-        const table = heading.nextElementSibling;
-        if (!table || !table.querySelectorAll) return null;
+      const table = heading.nextElementSibling;
+      if (!table || !table.querySelectorAll) return null;
 
-        const cells = table.querySelectorAll('td');
-        if (cells.length < 2) return null;
+      const cells = table.querySelectorAll('td');
+      if (cells.length < 2) return null;
 
-        const city = cells[0].innerText.trim();
-        const date = cells[1].innerText.trim();
-        return `📅 First Available Appointment:\n${city} - ${date}`;
-      });
+      const city = cells[0].innerText.trim();
+      const date = cells[1].innerText.trim();
+      return `📅 First Available Appointment:\n${city} - ${date}`;
+    });
 
-      if (appointmentInfo) {
-        console.log("📅 Appointment Found:\n" + appointmentInfo);
-        await sendTelegramMessage("📢 Visa Update:\n" + appointmentInfo);
-      } else {
-        console.log("❌ No appointment info found.");
-      }
-      await browser.close();
-      return;
-    } catch (err) {
-      console.error(`⚠️ Attempt ${attempt} failed: ${err.message}`);
-      if (attempt === retries) {
-        await sendTelegramMessage(`❌ Failed after ${retries} attempts: ${err.message}`);
-      }
-      if (browser) await browser.close();
-      await new Promise(resolve => setTimeout(resolve, delay));
+    if (appointmentInfo) {
+      console.log("📅 Appointment Found:\n" + appointmentInfo);
+      await sendTelegramMessage("📢 Visa Update:\n" + appointmentInfo);
+    } else {
+      console.log("❌ No appointment info found.");
     }
+  } catch (err) {
+    console.error(`⚠️ Check failed: ${err.message}`);
+    await sendTelegramMessage(`❌ Check failed: ${err.message}`);
+  } finally {
+    if (browser) await browser.close();
   }
 };
 
+// Initial check
 checkAppointment();
-setInterval(checkAppointment, 10 * 60 * 1000); // 10 minutes for safer polling
+// Poll every 10 minutes
+setInterval(checkAppointment, 10 * 60 * 1000);
