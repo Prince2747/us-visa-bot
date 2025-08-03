@@ -1,11 +1,11 @@
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 
-puppeteer.use(StealthPlugin());
+puppeteer.use(StealthPlugin()); // ✅ Now works
 
 // ==== Configuration ====
 const USERNAME = process.env.VISA_USERNAME;
