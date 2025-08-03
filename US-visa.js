@@ -1,5 +1,5 @@
 require('dotenv').config();
-const puppeteer = require('puppeteer-extra');
+const puppeteer = require('puppeteer');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fetch = require('node-fetch');
 const fs = require('fs');
