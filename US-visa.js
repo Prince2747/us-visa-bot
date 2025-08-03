@@ -69,13 +69,14 @@ const checkAppointment = async (retries = 3, delay = 5000) => {
     let browser;
     try {
       browser = await puppeteer.launch({
-        headless: true, // Use headless for production
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        ],
-      });
+  headless: true,
+  executablePath: '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome',
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  ],
+});
       const page = await browser.newPage();
 
       await page.goto(`https://ais.usvisa-info.com/en-${REGION}/niv/users/sign_in`, { waitUntil: 'networkidle2' });

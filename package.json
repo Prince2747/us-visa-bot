@@ -4,7 +4,7 @@
   "main": "US-visa.js",
   "scripts": {
     "start": "node US-visa.js",
-     "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chrome --install-deps"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
