@@ -5,18 +5,16 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 
-
 puppeteer.use(StealthPlugin());
 
 // ==== Configuration ====
-const USERNAME = process.env.USERNAME;
-const PASSWORD = process.env.PASSWORD;
+const USERNAME = process.env.VISA_USERNAME;
+const PASSWORD = process.env.VISA_PASSWORD;
 const REGION = process.env.REGION;
 const APPOINTMENT_ID = process.env.APPOINTMENT_ID;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 const CHAT_ID_FILE = 'chat_ids.json';
-
 
 let chatIDs = new Set();
 try {
@@ -25,7 +23,6 @@ try {
 } catch {
   console.log('ℹ️ No chat_ids.json found. Starting fresh.');
 }
-
 
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
@@ -38,7 +35,6 @@ bot.on('message', (msg) => {
   }
   bot.sendMessage(chatId, '✅ You are now subscribed for visa appointment updates.');
 });
-
 
 const sendTelegramMessage = async (message) => {
   const text = encodeURIComponent(message);
@@ -107,6 +103,5 @@ const checkAppointment = async () => {
   }
 };
 
-
 checkAppointment();
-setInterval(checkAppointment, 3 * 60 * 1000); 
+setInterval(checkAppointment, 3 * 60 * 1000);
