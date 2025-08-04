@@ -128,4 +128,4 @@ const checkAppointment = async () => {
 // Initial check
 checkAppointment();
 // Poll every 10 minutes
-setInterval(checkAppointment, 10 * 60 * 1000);
+setInterval(checkAppointment, 3 * 60 * 1000);
