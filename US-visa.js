@@ -1,8 +1,9 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
-const TelegramBot = require('node-telegram-bot-api');
+const fsSync = require('fs'); // for synchronous path checks
 const path = require('path');
+const TelegramBot = require('node-telegram-bot-api');
 
 // ==== Configuration ====
 const requiredEnv = [
@@ -64,20 +65,36 @@ const sendTelegramMessage = async (message) => {
   }
 };
 
+// Automatically detect Chrome path in Render environment
+function findChromeExecutable() {
+  const baseDir = '/opt/render/project/.cache/puppeteer/chrome';
+  if (!fsSync.existsSync(baseDir)) {
+    throw new Error(`Chrome base directory not found: ${baseDir}`);
+  }
+  const versions = fsSync.readdirSync(baseDir).filter(f => !f.startsWith('.'));
+  if (!versions.length) {
+    throw new Error(`No Chrome versions found in ${baseDir}`);
+  }
+  // Pick the first (or latest sorted) version
+  const latestVersion = versions.sort().pop();
+  const chromePath = path.join(baseDir, latestVersion, 'chrome-linux64', 'chrome');
+  if (!fsSync.existsSync(chromePath)) {
+    throw new Error(`Chrome binary not found at: ${chromePath}`);
+  }
+  console.log(`✅ Using Chrome executable: ${chromePath}`);
+  return chromePath;
+}
+
 const checkAppointment = async () => {
   console.log('🔄 Checking for appointment...');
   let browser;
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: path.resolve('/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome'),
+      executablePath: findChromeExecutable(),
       args: [
         '--no-sandbox',
-        '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
                       'AppleWebKit/537.36 (KHTML, like Gecko) ' +
                       'Chrome/120.0.0.0 Safari/537.36',
