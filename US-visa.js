@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const fs = require('fs').promises;
 const TelegramBot = require('node-telegram-bot-api');
 const { execSync } = require('child_process');
+const http = require('http');
 
 // ==== Configuration ====
 const requiredEnv = ['VISA_USERNAME', 'VISA_PASSWORD', 'REGION', 'APPOINTMENT_ID', 'TELEGRAM_BOT_TOKEN'];
@@ -21,7 +22,7 @@ const APPOINTMENT_ID = process.env.APPOINTMENT_ID;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID_FILE = 'chat_ids.json';
 
-// ==== Load chat IDs ====
+// ==== Load saved chat IDs ====
 let chatIDs = new Set();
 (async () => {
   try {
@@ -32,7 +33,7 @@ let chatIDs = new Set();
   }
 })();
 
-// ==== Telegram Bot Setup ====
+// ==== Telegram bot setup ====
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
 bot.on('message', async (msg) => {
@@ -65,15 +66,14 @@ const sendTelegramMessage = async (message) => {
   }
 };
 
-// ==== Main Appointment Check ====
+// ==== Main check function ====
 const checkAppointment = async () => {
   console.log('🔄 Checking for appointment...');
   let browser;
   try {
-    // Install Chrome in the runtime environment
+    // Ensure Chrome is installed at runtime
     execSync('npx puppeteer browsers install chrome', { stdio: 'inherit' });
 
-    // Launch Puppeteer using the installed Chrome path
     browser = await puppeteer.launch({
       headless: true,
       executablePath: puppeteer.executablePath(),
@@ -135,7 +135,15 @@ const checkAppointment = async () => {
   }
 };
 
-// Initial check
+// ==== Start checks ====
 checkAppointment();
-// Poll every 5 minutes
-setInterval(checkAppointment, 5 * 60 * 1000);
+setInterval(checkAppointment, 5 * 60 * 1000); // every 5 minutes
+
+// ==== Tiny HTTP server for Render ====
+const PORT = process.env.PORT || 10000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('US Visa Bot is running\n');
+}).listen(PORT, '0.0.0.0', () => {
+  console.log(`HTTP server listening on port ${PORT}`);
+});
