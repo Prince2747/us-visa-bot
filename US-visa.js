@@ -2,6 +2,7 @@ require('dotenv').config();
 const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const TelegramBot = require('node-telegram-bot-api');
+const path = require('path');
 
 // ==== Configuration ====
 const requiredEnv = [
@@ -69,6 +70,7 @@ const checkAppointment = async () => {
   try {
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: path.resolve('/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome'),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -94,7 +96,7 @@ const checkAppointment = async () => {
     // Wait for navigation or login error
     await Promise.race([
       page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
-      page.waitForSelector('.flash-alert', { timeout: 15000 }) // login error
+      page.waitForSelector('.flash-alert', { timeout: 15000 })
     ]);
 
     const paymentUrl = `https://ais.usvisa-info.com/en-${REGION}/niv/schedule/${APPOINTMENT_ID}/payment`;
@@ -135,4 +137,4 @@ const checkAppointment = async () => {
 // Initial check
 checkAppointment();
 // Poll every 10 minutes
-setInterval(checkAppointment, 3 * 60 * 1000);
+setInterval(checkAppointment, 10 * 60 * 1000);
