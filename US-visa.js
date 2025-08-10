@@ -1,11 +1,16 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const fetch = require('node-fetch');
 const fs = require('fs').promises;
 const TelegramBot = require('node-telegram-bot-api');
 
 // ==== Configuration ====
-const requiredEnv = ['VISA_USERNAME', 'VISA_PASSWORD', 'REGION', 'APPOINTMENT_ID', 'TELEGRAM_BOT_TOKEN'];
+const requiredEnv = [
+  'VISA_USERNAME',
+  'VISA_PASSWORD',
+  'REGION',
+  'APPOINTMENT_ID',
+  'TELEGRAM_BOT_TOKEN'
+];
 for (const env of requiredEnv) {
   if (!process.env[env]) {
     console.error(`❌ Missing environment variable: ${env}`);
@@ -47,15 +52,11 @@ bot.on('message', async (msg) => {
 });
 
 const sendTelegramMessage = async (message) => {
-  const text = encodeURIComponent(message);
   for (const chatId of chatIDs) {
     try {
-      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${text}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.description);
+      await bot.sendMessage(chatId, message);
       console.log(`✅ Sent to ${chatId}`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // avoid flooding
     } catch (err) {
       console.error(`❌ Failed for ${chatId}: ${err.message}`);
     }
@@ -68,7 +69,6 @@ const checkAppointment = async () => {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -76,7 +76,9 @@ const checkAppointment = async () => {
         '--disable-gpu',
         '--single-process',
         '--no-zygote',
-        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+                      'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                      'Chrome/120.0.0.0 Safari/537.36',
       ],
     });
 
@@ -89,7 +91,11 @@ const checkAppointment = async () => {
     await page.click('label[for="policy_confirmed"]');
     await page.click('input[name="commit"]');
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    // Wait for navigation or login error
+    await Promise.race([
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
+      page.waitForSelector('.flash-alert', { timeout: 15000 }) // login error
+    ]);
 
     const paymentUrl = `https://ais.usvisa-info.com/en-${REGION}/niv/schedule/${APPOINTMENT_ID}/payment`;
     await page.goto(paymentUrl, { waitUntil: 'domcontentloaded' });
@@ -97,7 +103,8 @@ const checkAppointment = async () => {
     await page.waitForSelector('h3.h4', { visible: true, timeout: 10000 });
 
     const appointmentInfo = await page.evaluate(() => {
-      const heading = Array.from(document.querySelectorAll('h3.h4')).find(h => h.innerText.includes('First Available Appointments'));
+      const heading = Array.from(document.querySelectorAll('h3.h4'))
+        .find(h => h.innerText.includes('First Available Appointments'));
       if (!heading) return null;
 
       const table = heading.nextElementSibling;
